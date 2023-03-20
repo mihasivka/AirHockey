@@ -1,7 +1,11 @@
 package ar.airhockey;
 
 import static android.opengl.GLES20.*;
+import static android.opengl.Matrix.multiplyMM;
 import static android.opengl.Matrix.orthoM;
+import static android.opengl.Matrix.rotateM;
+import static android.opengl.Matrix.setIdentityM;
+import static android.opengl.Matrix.translateM;
 
 import javax.microedition.khronos.egl.EGLConfig;
 import javax.microedition.khronos.opengles.GL10;
@@ -29,9 +33,11 @@ public class AirHockeyRenderer implements Renderer {
     private static final int COLOR_COMPONENT_COUNT = 3;
     private static final int STRIDE =
             (POSITION_COMPONENT_COUNT + COLOR_COMPONENT_COUNT) * BYTES_PER_FLOAT;
+
     private int program;
     int aColorLocation, uPointSizeLocation, aPositionLocation,uMatrixLocation;
     private final float[] projectionMatrix = new float [16];
+    private final float[] modelMatrix =  new float[16];
 
     public AirHockeyRenderer(Context context){
         this.context = context;
@@ -43,20 +49,16 @@ public class AirHockeyRenderer implements Renderer {
                 .5f, .8f, .75f, .75f, .75f,
                 -.5f, .8f, .75f, .75f, .75f,
                 -.5f, -.8f, .75f, .75f, .75f,
-                // Line 1
-                -0.5f, 0f, 1f, .0f, .0f,
-                0.5f, 0f, 1f, .0f, .0f,
-                // Mallets
-                0f, -0.5f, .0f, .0f, 1f,
-                0f, 0.5f, 1f, .0f, .0f,
-                //puck
-                0f,0f, .1f, .1f, .1f,
-                //border
 
-                -.5f,-.8f, .0f, .0f, .0f,.5f,-.8f, .0f, .0f, .0f,
-                .5f,-.8f, .0f, .0f, .0f,.5f,.8f, .0f, .0f, .0f,
-                .5f,.8f, .0f, .0f, .0f,-.5f,.8f, .0f, .0f, .0f,
-                -.5f,.8f, .0f, .0f, .0f,-.5f,-.8f, .0f, .0f, .0f,
+                -.5f, -.8f, .0f, .0f, .0f, .5f, -.8f, .0f, .0f, .0f, // bottom line
+                .5f, -.8f, .0f, .0f, .0f, .5f, .8f, .0f, .0f, .0f, // right line
+                .5f, .8f, .0f, .0f, .0f, -.5f, .8f, .0f, .0f, .0f,// top line
+                -.5f, .8f, .0f, .0f, .0f, -.5f, -.8f, .0f, .0f, .0f, // left line
+                -.5f, .0f, 1f, .0f, .0f, .5f, .0f, 1f, .0f, .0f, // middle line
+
+                .0f, -.4f, .0f, .0f, 1f, // first mallet
+                .0f, .4f, 1f, .0f, .0f, // second mallet
+                .0f, .0f, 0f, .0f, .0f // puck
 
         };
 
@@ -89,6 +91,7 @@ public class AirHockeyRenderer implements Renderer {
         aPositionLocation = glGetAttribLocation(program, "a_Position");
         uMatrixLocation = glGetUniformLocation(program, "u_Matrix");
 
+
         vertexData.position(0);
         glVertexAttribPointer(aPositionLocation,POSITION_COMPONENT_COUNT,GL_FLOAT,
                 false, STRIDE  , vertexData);
@@ -117,6 +120,18 @@ public class AirHockeyRenderer implements Renderer {
             orthoM(projectionMatrix, 0,-1f,1f,-aspectRatio, aspectRatio, -1f,1f);
         }
         glUniformMatrix4fv(uMatrixLocation,1,false,projectionMatrix,0);
+        MatrixHelper.perspectiveM(projectionMatrix,45,(float) width / (float) height,
+                1f,10f);
+        setIdentityM(modelMatrix,0);
+        if (height > width)
+            translateM(modelMatrix, 0, 0f, 0f, -4f);
+        else
+            translateM(modelMatrix, 0, 0f, 0f, -2f);
+        rotateM(modelMatrix,0,-60f,1f,0f,0f);
+        float[] temp = new float[16];
+        multiplyMM(temp,0,projectionMatrix,0,modelMatrix,0);
+        System.arraycopy(temp, 0 , projectionMatrix, 0 , temp.length);
+        glUniformMatrix4fv(uMatrixLocation,1,false,projectionMatrix,0);
     }
 
 
@@ -125,21 +140,19 @@ public class AirHockeyRenderer implements Renderer {
         // Clear the rendering surface.
         glClear(GL_COLOR_BUFFER_BIT);
         //Triangles
+        // Table
         glDrawArrays(GL_TRIANGLE_FAN, 0, 6);
-        //center Line
-        glDrawArrays(GL_LINES,6,2);
+        // Border
+        glDrawArrays(GL_LINES, 6, 10);
+        // Mallets
+        glUniform1f(uPointSizeLocation, 30f);
+        glDrawArrays(GL_POINTS, 16, 1);
+        glDrawArrays(GL_POINTS, 17, 1);
+        // Puck
+        glUniform1f(uPointSizeLocation, 15f);
+        glDrawArrays(GL_POINTS, 18, 1);
 
 
-        glUniform1f(uPointSizeLocation,40f);
-        //Mallet 1
-        glDrawArrays(GL_POINTS,8,1);
-        //Mallet 2
-        glDrawArrays(GL_POINTS,9,1);
-        //Puck
-        glUniform1f(uPointSizeLocation,20f);
-        glDrawArrays(GL_POINTS,10,1);
-        //Border
-        glDrawArrays(GL_LINES,11,8);
 
     }
 }
