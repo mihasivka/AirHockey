@@ -1,4 +1,4 @@
-package ar.airhockey;
+package ar.airhockey.utils;
 
 public class MatrixHelper {
 
