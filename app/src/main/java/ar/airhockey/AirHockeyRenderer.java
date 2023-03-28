@@ -92,21 +92,30 @@ public class AirHockeyRenderer implements Renderer {
         glDisable(GL_DEPTH_TEST);
 
         // Draw the table.
-        textureProgram.useProgram();
-        //Dodajanje 2. texture za exercise7
-        textureProgram.setUniforms2(projectionMatrix, texture[0],texture[1]);
 
-        table.bindData(textureProgram);
+        textureProgram.useProgram();
+        textureProgram.setUniforms2(projectionMatrix, texture[0],texture[1]);
         textureProgram.setuTextureUnit(0);
-        //Dodajanje 2. texture za tutorial
-        textureProgram.setuTextureUnit2(1);
+        table.bindData(textureProgram);
         table.draw();
+
+        //Blending
+        glEnable(GL_BLEND);
+        glBlendEquation(GL_FUNC_ADD);
+        glBlendFunc(GL_SRC_ALPHA,GL_ONE_MINUS_SRC_ALPHA);
+
+        textureProgram.setuTextureUnit(1);
+        table.bindData(textureProgram);
+        table.draw();
+
 
         // Draw the mallets.
         colorProgram.useProgram();
         colorProgram.setUniforms(projectionMatrix);
         mallet.bindData(colorProgram);
         mallet.draw();
+
+
     }
 
 }
